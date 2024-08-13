@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import pl.gr.veterinaryapp.model.dto.VetRequestDto;
+import pl.gr.veterinaryapp.model.dto.VetResponseDto;
 import pl.gr.veterinaryapp.model.entity.Vet;
 import pl.gr.veterinaryapp.service.VetService;
 
@@ -33,7 +34,7 @@ public class VetRestController {
     }
 
     @GetMapping
-    public List<Vet> getAllVets(Pageable pageable) {
+    public List<VetResponseDto> getAllVets(Pageable pageable) {
         return vetService.getAllVets(pageable);
     }
 
