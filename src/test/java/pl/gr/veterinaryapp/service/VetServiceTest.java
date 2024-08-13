@@ -73,7 +73,7 @@ public class VetServiceTest {
 
         when(vetRepository.findAll()).thenReturn(vets);
 
-        var result = vetService.getAllVets();
+        var result = vetService.getAllVets(any());
 
         assertThat(result)
                 .isNotNull()

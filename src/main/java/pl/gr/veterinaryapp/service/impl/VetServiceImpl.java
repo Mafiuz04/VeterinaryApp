@@ -1,6 +1,7 @@
 package pl.gr.veterinaryapp.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import pl.gr.veterinaryapp.exception.IncorrectDataException;
@@ -27,8 +28,8 @@ public class VetServiceImpl implements VetService {
     }
 
     @Override
-    public List<Vet> getAllVets() {
-        return vetRepository.findAll();
+    public List<Vet> getAllVets(Pageable pageable) {
+        return vetRepository.findAll(pageable).getContent();
     }
 
     @Transactional

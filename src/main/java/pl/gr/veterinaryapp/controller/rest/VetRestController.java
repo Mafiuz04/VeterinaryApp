@@ -1,6 +1,7 @@
 package pl.gr.veterinaryapp.controller.rest;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Pageable;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -32,8 +33,8 @@ public class VetRestController {
     }
 
     @GetMapping
-    public List<Vet> getAllVets() {
-        return vetService.getAllVets();
+    public List<Vet> getAllVets(Pageable pageable) {
+        return vetService.getAllVets(pageable);
     }
 
     @DeleteMapping("/{id}")

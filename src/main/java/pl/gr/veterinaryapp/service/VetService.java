@@ -1,5 +1,6 @@
 package pl.gr.veterinaryapp.service;
 
+import org.springframework.data.domain.Pageable;
 import pl.gr.veterinaryapp.model.dto.VetRequestDto;
 import pl.gr.veterinaryapp.model.entity.Vet;
 
@@ -9,7 +10,7 @@ public interface VetService {
 
     Vet getVetById(long id);
 
-    List<Vet> getAllVets();
+    List<Vet> getAllVets(Pageable pageable);
 
     Vet createVet(VetRequestDto vetRequestDTO);
 

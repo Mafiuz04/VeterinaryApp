@@ -110,7 +110,7 @@ class VetRestControllerTest {
 
         List<Vet> vets = List.of(vet, vet);
 
-        when(vetService.getAllVets()).thenReturn(vets);
+        when(vetService.getAllVets(any())).thenReturn(vets);
 
         mockMvc.perform(get("/api/vets")
                 .accept(MediaType.APPLICATION_JSON))
@@ -126,7 +126,7 @@ class VetRestControllerTest {
                 .andExpect(jsonPath("$.[1].workStartTime").value(workStartTime.toString()))
                 .andExpect(jsonPath("$.[1].workEndTime").value(workEndTime.toString()));
 
-        verify(vetService).getAllVets();
+        verify(vetService).getAllVets(any());
     }
 
     private Vet prepareVet(String name, String surname, String photoUrl, OffsetTime workStartTime,
