@@ -14,6 +14,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import pl.gr.veterinaryapp.config.WebSecurityConfig;
 import pl.gr.veterinaryapp.jwt.JwtAuthenticationFilter;
 import pl.gr.veterinaryapp.model.dto.VetRequestDto;
+import pl.gr.veterinaryapp.model.dto.VetResponseDto;
 import pl.gr.veterinaryapp.model.entity.Vet;
 import pl.gr.veterinaryapp.service.VetService;
 
@@ -108,9 +109,9 @@ class VetRestControllerTest {
 
         var vet = prepareVet(VET_NAME, VET_SURNAME, IMAGE_URL, workStartTime, workEndTime);
 
-        List<Vet> vets = List.of(vet, vet);
+        List<VetResponseDto> vets = List.of(vet, vet);
 
-        when(vetService.getAllVets()).thenReturn(vets);
+        when(vetService.getAllVets(any())).thenReturn(vets);
 
         mockMvc.perform(get("/api/vets")
                 .accept(MediaType.APPLICATION_JSON))
@@ -126,12 +127,12 @@ class VetRestControllerTest {
                 .andExpect(jsonPath("$.[1].workStartTime").value(workStartTime.toString()))
                 .andExpect(jsonPath("$.[1].workEndTime").value(workEndTime.toString()));
 
-        verify(vetService).getAllVets();
+        verify(vetService).getAllVets(any());
     }
 
-    private Vet prepareVet(String name, String surname, String photoUrl, OffsetTime workStartTime,
+    private VetResponseDto prepareVet(String name, String surname, String photoUrl, OffsetTime workStartTime,
                            OffsetTime workEndTime) {
-        var vet = new Vet();
+        var vet = new VetResponseDto();
         vet.setName(name);
         vet.setSurname(surname);
         vet.setPhotoUrl(photoUrl);

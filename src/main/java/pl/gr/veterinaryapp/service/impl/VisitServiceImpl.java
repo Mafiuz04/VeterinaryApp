@@ -22,6 +22,7 @@ import pl.gr.veterinaryapp.repository.TreatmentRoomRepository;
 import pl.gr.veterinaryapp.repository.VetRepository;
 import pl.gr.veterinaryapp.repository.VisitRepository;
 import pl.gr.veterinaryapp.service.VisitService;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RequiredArgsConstructor
 @Service
 public class VisitServiceImpl implements VisitService {
@@ -51,6 +53,7 @@ public class VisitServiceImpl implements VisitService {
                 .orElseThrow(() -> new ResourceNotFoundException("Wrong id."));
 
         if (!isUserAuthorized(user, visit.getPet().getClient())) {
+            log.warn("User {} is not authorized to access visit with id: {}", user.getUsername(), id);
             throw new ResourceNotFoundException("Wrong id.");
         }
 
@@ -68,26 +71,38 @@ public class VisitServiceImpl implements VisitService {
     @Transactional
     @Override
     public Visit createVisit(User user, VisitRequestDto visitRequestDto) {
+        log.info("Creating visit for user: {} with details: {}", user.getUsername(), visitRequestDto);
         var vetId = visitRequestDto.getVetId();
         var startDateTime = visitRequestDto.getStartDateTime();
         var duration = visitRequestDto.getDuration();
 
         Vet vet = vetRepository.findById(vetId)
-                .orElseThrow(() -> new IncorrectDataException("Wrong vet id."));
+                .orElseThrow(() ->{
+                    log.error("Vet with id {} not found", vetId);
+                    return new IncorrectDataException("Wrong vet id.");
+                });
 
         validateVisitDate(vetId, startDateTime, duration);
 
         Pet pet = petRepository.findById(visitRequestDto.getPetId())
-                .orElseThrow(() -> new IncorrectDataException("Wrong pet id."));
+                .orElseThrow(() ->{
+                    log.error("Pet with id {} not found", visitRequestDto.getPetId());
+                    return new IncorrectDataException("Wrong pet id.");
+                });
 
         if (!isUserAuthorized(user, pet.getClient())) {
+            log.warn("User {} is not authorized to create a visit for pet id: {}", user.getUsername(), visitRequestDto.getPetId());
             throw new ResourceNotFoundException("Wrong id.");
         }
 
         var treatmentRoom = getFreeTreatmentRoom(startDateTime, duration)
-                .orElseThrow(() -> new IncorrectDataException("There is no free treatment room."));
+                .orElseThrow(() ->{
+                    log.error("No free treatment room available for start time: {} and duration: {}", startDateTime, duration);
+                    return new IncorrectDataException("There is no free treatment room.");
+                });
 
         if (!isTimeBetweenIncludingEndPoints(vet.getWorkStartTime(), vet.getWorkEndTime(), visitRequestDto.getStartDateTime())) {
+            log.error("Attempt to schedule a visit outside of vet's working hours for vet id: {}", vetId);
             throw new IncorrectDataException("This vet doesn't work at this hour.");
         }
 
@@ -102,21 +117,26 @@ public class VisitServiceImpl implements VisitService {
         newVisit.setOperationType(visitRequestDto.getOperationType());
         newVisit.setTreatmentRoom(treatmentRoom);
 
-        return visitRepository.save(newVisit);
+        Visit savedVisit = visitRepository.save(newVisit);
+        log.info("Visit created with id: {}", savedVisit.getId());
+        return savedVisit;
     }
 
     private void validateVisitDate(long vetId, OffsetDateTime startDateTime, Duration duration) {
         var nowZoned = OffsetDateTime.now(systemClock);
 
         if (startDateTime.isBefore(nowZoned)) {
+            log.error("Visit startDateTime {} is in the past", startDateTime);
             throw new IncorrectDataException("Visit startDateTime need to be in future.");
         }
 
         if (Duration.between(nowZoned, startDateTime).toMinutes() < MINIMAL_TIME_TO_VISIT) {
+            log.error("Time to visit start is too short: {} minutes", Duration.between(nowZoned, startDateTime).toMinutes());
             throw new IncorrectDataException("The time to your visit is too short.");
         }
 
-        if (visitRepository.findAllOverlapping(vetId, startDateTime, startDateTime.plus(duration)).size() != 0) {
+        if (visitRepository.findAllOverlapping(vetId, startDateTime, startDateTime.plus(duration)).isEmpty()) {
+            log.error("Requested visit time overlaps with existing visit for vet id: {}", vetId);
             throw new IncorrectDataException("This date is not available.");
         }
     }
@@ -131,8 +151,10 @@ public class VisitServiceImpl implements VisitService {
         rooms.removeAll(occupiedRooms);
 
         if (rooms.isEmpty()) {
+            log.info("No free treatment rooms available for start time: {} and duration: {}", startDateTime, duration);
             return Optional.empty();
         } else {
+            log.debug("Free treatment room found for start time: {} and duration: {}", startDateTime, duration);
             return Optional.of(rooms.get(0));
         }
     }
@@ -140,6 +162,7 @@ public class VisitServiceImpl implements VisitService {
     @Transactional
     @Override
     public Visit finalizeVisit(VisitEditDto visitEditDto) {
+        log.info("Finalizing visit with id: {}", visitEditDto.getId());
         Visit visit = visitRepository.findById(visitEditDto.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Wrong id."));
         if (visitEditDto.getVisitStatus() == VisitStatus.FINISHED
@@ -148,6 +171,7 @@ public class VisitServiceImpl implements VisitService {
             visit.setVisitStatus(visitEditDto.getVisitStatus());
         }
         visit.setVisitDescription(visitEditDto.getDescription());
+        log.info("Visit with id: {}, finalized", visitEditDto.getId());
         return visit;
     }
 
@@ -157,6 +181,7 @@ public class VisitServiceImpl implements VisitService {
         Visit result = visitRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Wrong id."));
         visitRepository.delete(result);
+        log.info("Visit with id: {} deleted", id);
     }
 
     @Transactional
@@ -191,8 +216,9 @@ public class VisitServiceImpl implements VisitService {
 
             visitSlotStart = visitSlotEnd;
         }
-
+        log.info("Available visits found: {}", result.size());
         return result;
+
     }
 
     private List<Vet> getVets(Collection<Long> vetIds) {

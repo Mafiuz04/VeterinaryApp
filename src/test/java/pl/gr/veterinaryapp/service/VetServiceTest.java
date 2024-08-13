@@ -5,20 +5,27 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import pl.gr.veterinaryapp.exception.IncorrectDataException;
 import pl.gr.veterinaryapp.exception.ResourceNotFoundException;
 import pl.gr.veterinaryapp.mapper.VetMapper;
 import pl.gr.veterinaryapp.model.dto.VetRequestDto;
+import pl.gr.veterinaryapp.model.dto.VetResponseDto;
 import pl.gr.veterinaryapp.model.entity.Vet;
 import pl.gr.veterinaryapp.repository.VetRepository;
 import pl.gr.veterinaryapp.service.impl.VetServiceImpl;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowableOfType;
+import static org.assertj.core.api.InstanceOfAssertFactories.map;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -69,15 +76,24 @@ public class VetServiceTest {
 
     @Test
     void getAllVets_ReturnVets_Returned() {
-        List<Vet> vets = new ArrayList<>();
+
+        List<Vet> vets = Arrays.asList(
+                new Vet(),
+                new Vet()
+        );
+        List<VetResponseDto> responseListDto = mapper.toResponseListDto(vets);
+        Pageable pageable = PageRequest.of(0, 10);
+        Page<Vet> vetPage = new PageImpl<>(vets, pageable, vets.size());
+
 
         when(vetRepository.findAll()).thenReturn(vets);
 
-        var result = vetService.getAllVets();
+        var result = vetService.getAllVets(pageable);
+
 
         assertThat(result)
                 .isNotNull()
-                .isEqualTo(vets);
+                .isEqualTo(responseListDto);
 
         verify(vetRepository).findAll();
         verifyNoInteractions(mapper);
